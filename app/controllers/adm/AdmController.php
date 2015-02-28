@@ -10,8 +10,6 @@ use \Models\Mship\Account;
 use \Request;
 class AdmController extends \Controllers\BaseController {
 
-    protected $_account = NULL;
-    protected $_pageTitle = NULL;
     protected $_pageSubTitle = NULL;
 
 	/**
