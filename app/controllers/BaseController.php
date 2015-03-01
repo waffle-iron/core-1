@@ -12,6 +12,7 @@ class BaseController extends \Controller {
 
     protected $_account;
     protected $_pageTitle;
+    protected $_template = null;
 
     public function __construct(){
         if(Auth::user()->check()){
@@ -34,6 +35,9 @@ class BaseController extends \Controller {
     }
 
     protected function viewMake($view) {
+        if($this->_template){
+            $view = $this->_template.".".$view;
+        }
         $view = View::make($view);
 
         // Accounts!

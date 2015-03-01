@@ -149,6 +149,4 @@ Route::group(array("namespace" => "Controllers"), function() {
     });
 });
 
-Route::get("/", function(){
-    return Redirect::route("mship.manage.landing");
-});
+Route::get("/{slug?}", ["as" => "site.content", "uses" => "\Controllers\Site\Content@runSlug"]);

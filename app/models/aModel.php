@@ -2,7 +2,7 @@
 
 namespace Models;
 
-use \Models\Sys\Timeline\Entry;
+use Cache;
 
 abstract class aModel extends \Eloquent {
     protected $doNotTrack = [];
@@ -15,7 +15,9 @@ abstract class aModel extends \Eloquent {
     }
 
     public static function eventCreated($model) {
-        \Cache::tags(get_class($model), $model->getTable())->flush();
+        Cache::tags(get_class($model), $model->getTable())
+             ->flush();
+
         return;
     }
 
@@ -25,16 +27,19 @@ abstract class aModel extends \Eloquent {
     }
 
     public static function eventDeleted($model) {
-        \Cache::tags(get_class($model), $model->getTable())->flush();
+        Cache::tags(get_class($model), $model->getTable())
+             ->flush();
+
         return;
     }
 
     public function toArray() {
         $array = parent::toArray();
         $array['status'] = ($this->deleted_at ? "Deleted" : "Active");
-        if (isset($array['pivot'])) {
+        if(isset($array['pivot'])) {
             unset($array['pivot']);
         }
+
         return $array;
     }
 
