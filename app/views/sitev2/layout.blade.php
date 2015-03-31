@@ -25,13 +25,12 @@
 <div class="banner">
     <div class="bannerLeft">
         <a href="http://www.vatsim-uk.co.uk/">
-            {{ HTML::image("assets/style/global/images/logo.png", "Logo", ["height" => "50"]) }}
+            {{ HTML::image("assets/style/global/images/logo.png", "Logo", ["height" => "50px"]) }}
         </a>
     </div>
     <div class="bannerRight">
-        {{ HTML::image("assets/style/global/images/slogan.png") }}
-        <a href="http://www.twitter.com/vatsimuk" target="_blank"></a>
-        <a href="http://www.facebook.com/vatsimuk" target="_blank"></a>
+        {{ HTML::image("assets/style/global/images/slogan-large.png", "Slogan", ["top" => "-5px", "right" => "10px", "width" => "400px"]) }}
+        <a href="http://www.facebook.com/vatsimuk" target="_blank">{{ HTML::image("assets/style/global/images/fb-icon.png", "Facebook Link") }}</a>
 
         <div class="bannerNavSupWrapper rtr rtl">
             <div class="bannerNavSubWrapper rtr rtl">
