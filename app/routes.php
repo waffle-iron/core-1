@@ -28,68 +28,62 @@ Route::group(["prefix" => "webhook", "namespace" => "Controllers\Webhook"], func
 });
 
 /* * ** ADM *** */
-Route::group(array("namespace" => "Controllers\Adm"), function() {
-    Route::group(array("prefix" => "adm"), function() {
+Route::group(array("prefix" => "adm", "namespace" => "Controllers\Adm"), function() {
+    // Login is the only unauthenticated page.
+    Route::get("/", array("as" => "adm", "uses" => "Authentication@getLogin"));
+    Route::group(array("prefix" => "authentication"), function(){
+        Route::get("/login", array("as" => "adm.authentication.login", "uses" => "Authentication@getLogin"));
+        Route::post("/login", array("as" => "adm.authentication.login", "uses" => "Authentication@postLogin"));
+        Route::get("/logout", array("as" => "adm.authentication.logout", "uses" => "Authentication@getLogout"));
+        Route::get("/verify", array("as" => "adm.authentication.verify", "uses" => "Authentication@getVerify"));
+    });
 
-        // Login is the only unauthenticated page.
-        Route::get("/", array("uses" => "Authentication@getLogin"));
-        Route::group(array("prefix" => "authentication"), function(){
-            Route::get("/login", array("as" => "adm.authentication.login", "uses" => "Authentication@getLogin"));
-            Route::post("/login", array("as" => "adm.authentication.login", "uses" => "Authentication@postLogin"));
-            Route::get("/logout", array("as" => "adm.authentication.logout", "uses" => "Authentication@getLogout"));
-            Route::get("/verify", array("as" => "adm.authentication.verify", "uses" => "Authentication@getVerify"));
+    Route::get("/error/{code?}", ["as" => "adm.error", "uses" => "Error@getDisplay"]);
+
+    // Auth required
+    Route::group(array("before" => "auth.admin"), function() {
+        Route::get("/dashboard", array("as" => "adm.dashboard", "uses" => "Dashboard@getIndex"));
+        Route::any("/search/{q?}", array("as" => "adm.search", "uses" => "Dashboard@anySearch"));
+
+        Route::group(array("prefix" => "system", "namespace" => "Sys"), function(){
+            Route::get("/timeline", array("as" => "adm.sys.timeline", "uses" => "Timeline@getIndex"));
+
+            Route::group(["prefix" => "postmaster", "namespace" => "Postmaster"], function(){
+                Route::get("/queue", ["as" => "adm.sys.postmaster.queue.index", "uses" => "Queue@getIndex"]);
+                Route::get("/queue/{postmasterQueue}", ["as" => "adm.sys.postmaster.queue.view", "uses" => "Queue@getView"]);
+                Route::get("/template", ["as" => "adm.sys.postmaster.template.index", "uses" => "Template@getIndex"]);
+                Route::get("/template/{postmasterTemplate}", ["as" => "adm.sys.postmaster.template.view", "uses" => "Template@getView"]);
+            });
         });
 
-        Route::get("/error/{code?}", ["as" => "adm.error", "uses" => "Error@getDisplay"]);
+        Route::group(array("prefix" => "mship", "namespace" => "Mship"), function() {
+            Route::get("/account/{mshipAccount}/{tab?}", ["as" => "adm.mship.account.details", "uses" => "Account@getDetail"]);
+            Route::post("/account/{mshipAccount}/role/attach", ["as" => "adm.mship.account.role.attach", "uses" => "Account@postRoleAttach"]);
+            Route::post("/account/{mshipAccount}/role/{mshipRole}/detach", ["as" => "adm.mship.account.role.detach", "uses" => "Account@postRoleDetach"]);
+            Route::post("/account/{mshipAccount}/note/create", ["as" => "adm.mship.account.note.create", "uses" => "Account@postNoteCreate"]);
+            Route::post("/account/{mshipAccount}/note/filter", ["as" => "adm.mship.account.note.filter", "uses" => "Account@postNoteFilter"]);
+            Route::post("/account/{mshipAccount}/security/enable", ["as" => "adm.mship.account.security.enable", "uses" => "Account@postSecurityEnable"]);
+            Route::post("/account/{mshipAccount}/security/reset", ["as" => "adm.mship.account.security.reset", "uses" => "Account@postSecurityReset"]);
+            Route::post("/account/{mshipAccount}/security/change", ["as" => "adm.mship.account.security.change", "uses" => "Account@postSecurityChange"]);
+            Route::post("/account/{mshipAccount}/impersonate", ["as" => "adm.mship.account.impersonate", "uses" => "Account@postImpersonate"]);
+            Route::get("/account/", ["as" => "adm.mship.account.index", "uses" => "Account@getIndex"]);
 
-        // Auth required
-        Route::group(array("before" => "auth.admin"), function() {
-            Route::get("/dashboard", array("as" => "adm.dashboard", "uses" => "Dashboard@getIndex"));
-            Route::any("/search/{q?}", array("as" => "adm.search", "uses" => "Dashboard@anySearch"));
+            Route::get("/role/create", ["as" => "adm.mship.role.create", "uses" => "Role@getCreate"]);
+            Route::post("/role/create", ["as" => "adm.mship.role.create", "uses" => "Role@postCreate"]);
+            Route::get("/role/{mshipRole}/update", ["as" => "adm.mship.role.update", "uses" => "Role@getUpdate"]);
+            Route::post("/role/{mshipRole}/update", ["as" => "adm.mship.role.update", "uses" => "Role@postUpdate"]);
+            Route::any("/role/{mshipRole}/delete", ["as" => "adm.mship.role.delete", "uses" => "Role@anyDelete"]);
+            Route::get("/role/", ["as" => "adm.mship.role.index", "uses" => "Role@getIndex"]);
 
-            Route::group(array("prefix" => "system", "namespace" => "Sys"), function(){
-                Route::get("/timeline", array("as" => "adm.sys.timeline", "uses" => "Timeline@getIndex"));
-
-                Route::group(["prefix" => "postmaster", "namespace" => "Postmaster"], function(){
-                    Route::get("/queue", ["as" => "adm.sys.postmaster.queue.index", "uses" => "Queue@getIndex"]);
-                    Route::get("/queue/{postmasterQueue}", ["as" => "adm.sys.postmaster.queue.view", "uses" => "Queue@getView"]);
-                    Route::get("/template", ["as" => "adm.sys.postmaster.template.index", "uses" => "Template@getIndex"]);
-                    Route::get("/template/{postmasterTemplate}", ["as" => "adm.sys.postmaster.template.view", "uses" => "Template@getView"]);
-                });
-            });
-
-            Route::group(array("prefix" => "mship", "namespace" => "Mship"), function() {
-                /* Route::get("/airport/{navdataAirport}", "Airport@getDetail")->where(array("navdataAirport" => "\d"));
-                  Route::post("/airport/{navdataAirport}", "Airport@getDetail")->where(array("navdataAirport" => "\d")); */
-                Route::get("/account/{mshipAccount}/{tab?}", ["as" => "adm.mship.account.details", "uses" => "Account@getDetail"]);
-                Route::post("/account/{mshipAccount}/role/attach", ["as" => "adm.mship.account.role.attach", "uses" => "Account@postRoleAttach"]);
-                Route::post("/account/{mshipAccount}/role/{mshipRole}/detach", ["as" => "adm.mship.account.role.detach", "uses" => "Account@postRoleDetach"]);
-                Route::post("/account/{mshipAccount}/note/create", ["as" => "adm.mship.account.note.create", "uses" => "Account@postNoteCreate"]);
-                Route::post("/account/{mshipAccount}/note/filter", ["as" => "adm.mship.account.note.filter", "uses" => "Account@postNoteFilter"]);
-                Route::post("/account/{mshipAccount}/security/enable", ["as" => "adm.mship.account.security.enable", "uses" => "Account@postSecurityEnable"]);
-                Route::post("/account/{mshipAccount}/security/reset", ["as" => "adm.mship.account.security.reset", "uses" => "Account@postSecurityReset"]);
-                Route::post("/account/{mshipAccount}/security/change", ["as" => "adm.mship.account.security.change", "uses" => "Account@postSecurityChange"]);
-                Route::post("/account/{mshipAccount}/impersonate", ["as" => "adm.mship.account.impersonate", "uses" => "Account@postImpersonate"]);
-                Route::get("/account/", ["as" => "adm.mship.account.index", "uses" => "Account@getIndex"]);
-
-                Route::get("/role/create", ["as" => "adm.mship.role.create", "uses" => "Role@getCreate"]);
-                Route::post("/role/create", ["as" => "adm.mship.role.create", "uses" => "Role@postCreate"]);
-                Route::get("/role/{mshipRole}/update", ["as" => "adm.mship.role.update", "uses" => "Role@getUpdate"]);
-                Route::post("/role/{mshipRole}/update", ["as" => "adm.mship.role.update", "uses" => "Role@postUpdate"]);
-                Route::any("/role/{mshipRole}/delete", ["as" => "adm.mship.role.delete", "uses" => "Role@anyDelete"]);
-                Route::get("/role/", ["as" => "adm.mship.role.index", "uses" => "Role@getIndex"]);
-
-                Route::get("/permission/create", ["as" => "adm.mship.permission.create", "uses" => "Permission@getCreate"]);
-                Route::post("/permission/create", ["as" => "adm.mship.permission.create", "uses" => "Permission@postCreate"]);
-                Route::get("/permission/{mshipPermission}/update", ["as" => "adm.mship.permission.update", "uses" => "Permission@getUpdate"]);
-                Route::post("/permission/{mshipPermission}/update", ["as" => "adm.mship.permission.update", "uses" => "Permission@postUpdate"]);
-                Route::any("/permission/{mshipPermission}/delete", ["as" => "adm.mship.permission.delete", "uses" => "Permission@anyDelete"]);
-                Route::get("/permission/", ["as" => "adm.mship.permission.index", "uses" => "Permission@getIndex"]);
-            });
+            Route::get("/permission/create", ["as" => "adm.mship.permission.create", "uses" => "Permission@getCreate"]);
+            Route::post("/permission/create", ["as" => "adm.mship.permission.create", "uses" => "Permission@postCreate"]);
+            Route::get("/permission/{mshipPermission}/update", ["as" => "adm.mship.permission.update", "uses" => "Permission@getUpdate"]);
+            Route::post("/permission/{mshipPermission}/update", ["as" => "adm.mship.permission.update", "uses" => "Permission@postUpdate"]);
+            Route::any("/permission/{mshipPermission}/delete", ["as" => "adm.mship.permission.delete", "uses" => "Permission@anyDelete"]);
+            Route::get("/permission/", ["as" => "adm.mship.permission.index", "uses" => "Permission@getIndex"]);
         });
     });
 });
-
 Route::group(array("namespace" => "Controllers"), function() {
     Route::get("/error/{code?}", ["as" => "error", "uses" => "Error@getDisplay"]);
 
