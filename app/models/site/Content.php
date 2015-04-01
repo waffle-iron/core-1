@@ -19,7 +19,7 @@ class Content extends \Models\aTimelineEntry {
     protected $primaryKey = "content_id";
     protected $dates      = ['created_at', 'updated_at', 'deleted_at'];
 
-    
+
 
     public function scopeIsPage($query){
         return $query->where("type", "=", self::TYPE_PAGE);
@@ -31,6 +31,16 @@ class Content extends \Models\aTimelineEntry {
 
     public function scopeIsDefault($query){
         return $query->where("is_default", "=", 1);
+    }
+
+    public function children(){
+        return $this->belongsToMany("\Models\Site\Content", "site_content_section_page", "section_id", "page_id")
+                    ->withPivot("sort_order", "important")
+                    ->withTimestamps();
+    }
+
+    public function getDefaultPageAttribute(){
+        return $this->children()->isDefault()->first();
     }
 
     public function getDisplayValueAttribute() {

@@ -15,7 +15,18 @@ class Content extends \Controllers\Site\SiteController {
         // Do we just require default?
         if($slug){
             $content = ContentData::isPage()->where("slug", "=", $slug)->first();
-        } else {
+
+            // If it's NOT a page, let's go for a section OF WHICh we need the default page.
+            if(!$content){
+                $section = ContentData::isSection()->where("slug", "=", $slug)->first();
+
+                if($section){
+                    $content = $section->children()->isPage()->orderBy("sort_order", "ASC")->first();
+                }
+            }
+        }
+
+        if(!$slug OR !$content){
             $content = ContentData::isPage()->isDefault()->first();
         }
 
