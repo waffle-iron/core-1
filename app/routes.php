@@ -12,23 +12,33 @@
  */
 
 Route::model("mshipAccount", "\Models\Mship\Account", function() {
-    Redirect::route("adm.mship.account.index");
+    return Redirect::route("adm.mship.account.index");
 });
 
 Route::model("mshipRole", "\Models\Mship\Role", function() {
-    Redirect::route("adm.mship.role.index")->withError("Role doesn't exist.");
+    return Redirect::route("adm.mship.role.index")->withError("Role doesn't exist.");
 });
 
 Route::model("mshipPermission", "\Models\Mship\Permission", function() {
-    Redirect::route("adm.mship.permission.index")->withError("Permission doesn't exist.");
+    return Redirect::route("adm.mship.permission.index")->withError("Permission doesn't exist.");
 });
 
 Route::model("postmasterQueue", "\Models\Sys\Postmaster\Queue", function(){
-    Redirect::route("adm.sys.postmaster.queue.index");
+    return Redirect::route("adm.sys.postmaster.queue.index");
 });
 
 Route::model("postmasterTemplate", "\Models\Sys\Postmaster\Template", function(){
-    Redirect::route("adm.sys.postmaster.template.index");
+    return Redirect::route("adm.sys.postmaster.template.index");
+});
+
+Route::model("contentPage", function($value, $r){
+    $find = \Models\Site\Content::where("content_id", "=", $value)->isPage()->first();
+
+    if(!$find){
+        return Redirect::route("adm.site.content.page.index");
+    } else {
+        return $find;
+    }
 });
 
 /*** WEBHOOKS ***/
@@ -70,8 +80,6 @@ Route::group(array("namespace" => "Controllers\Adm"), function() {
             });
 
             Route::group(array("prefix" => "mship", "namespace" => "Mship"), function() {
-                /* Route::get("/airport/{navdataAirport}", "Airport@getDetail")->where(array("navdataAirport" => "\d"));
-                  Route::post("/airport/{navdataAirport}", "Airport@getDetail")->where(array("navdataAirport" => "\d")); */
                 Route::get("/account/{mshipAccount}/{tab?}", ["as" => "adm.mship.account.details", "uses" => "Account@getDetail"])->where(["mshipAccount" => "\d+"]);
                 Route::post("/account/{mshipAccount}/role/attach", ["as" => "adm.mship.account.role.attach", "uses" => "Account@postRoleAttach"])->where(["mshipAccount" => "\d+"]);
                 Route::post("/account/{mshipAccount}/role/{mshipRole}/detach", ["as" => "adm.mship.account.role.detach", "uses" => "Account@postRoleDetach"])->where(["mshipAccount" => "\d+"]);
@@ -98,6 +106,16 @@ Route::group(array("namespace" => "Controllers\Adm"), function() {
                 Route::get("/permission/", ["as" => "adm.mship.permission.index", "uses" => "Permission@getIndex"]);
             });
         });
+
+        Route::group(["prefix" => "site", "namespace" => "Site"], function(){
+            Route::get("/content/page", ["as" => "adm.site.content.page.index", "uses" => "Content@getPageIndex"]);
+            Route::get("/content/page/{contentPage}", ["as" => "adm.site.content.page.detail", "uses" => "Content@getPageDetail"]);
+        });
+
+        Route::get("/", ["as" => "adm"], function(){
+            return Redirect::route("adm.authorisation.login");
+        });
+
     });
 });
 
@@ -156,6 +174,11 @@ Route::group(array("namespace" => "Controllers"), function() {
         Route::get("auth/login", ["as" => "sso.auth.login", "uses" => "Authentication@getLogin"]);
         Route::post("security/generate", ["as" => "sso.security.generate", "uses" => "Security@postGenerate"]);
         Route::post("security/details", ["as" => "sso.security.details", "uses" => "Security@postDetails"]);
+    });
+
+    // Site groups
+    Route::group(["namespace" => "Site"], function(){
+
     });
 });
 
