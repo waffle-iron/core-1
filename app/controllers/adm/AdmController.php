@@ -26,8 +26,8 @@ class AdmController extends \Controllers\BaseController {
 
     protected function buildBreadcrumb() {
         $breadcrumb = array();
-        $uri = "/adm";
-        $bcBase = explode("\\", str_replace("Controllers\\Adm\\", "", get_called_class()));
+        $uri        = "/adm";
+        $bcBase     = explode("\\", str_replace("Controllers\\Adm\\", "", get_called_class()));
         foreach ($bcBase as $bc) {
             $uri.= "/" . strtolower($bc);
             $breadcrumb[] = [strtolower($bc), $uri, Route::has($uri)];
@@ -50,4 +50,5 @@ class AdmController extends \Controllers\BaseController {
 
         return $view;
     }
+
 }

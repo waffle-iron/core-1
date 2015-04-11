@@ -33,6 +33,12 @@ class Content extends \Models\aTimelineEntry {
         return $query->where("is_default", "=", 1);
     }
 
+    public function sections(){
+        return $this->belongsToMany("\Models\Site\Content", "site_content_section_page", "page_id", "section_id")
+                    ->withPivot("sort_order", "important")
+                    ->withTimestamps();
+    }
+
     public function children(){
         return $this->belongsToMany("\Models\Site\Content", "site_content_section_page", "section_id", "page_id")
                     ->withPivot("sort_order", "important")

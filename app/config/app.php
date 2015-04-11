@@ -183,6 +183,6 @@ return array(
         'VatsimXML' => 'Vatsim\Xml\Facades\XML',
         'DbView'          => 'Flynsarmy\DbBladeCompiler\Facades\DbView',
         'Entrust'    => 'Zizaco\Entrust\EntrustFacade',
-        'Debugbar' => 'Barryvdh\Debugbar\Facade',
+        //'Debugbar' => 'Barryvdh\Debugbar\Facade',
     ),
 );

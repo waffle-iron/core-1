@@ -125,6 +125,22 @@
             </li>
         @endif
 
+        @if($_account->hasChildPermission("adm/site"))
+            <li class="treeview {{ (\Request::is('adm/site*') ? 'active' : '') }}">
+                <a href="#">
+                    <i class="ion ion-gear-b"></i> <span>Site</span>
+                    <i class="fa fa-angle-left pull-right"></i>
+                </a>
+                <ul class="treeview-menu">
+                    @if($_account->hasChildPermission("adm/site/content/page*"))
+                        <li {{ (\Request::is('adm/site/content/page*') ? ' class="active"' : '') }}>
+                            <a href="{{ URL::route("adm.site.content.page.index") }}"><i class="fa fa-angle-double-right"></i> Pages</a>
+                        </li>
+                    @endif
+                </ul>
+            </li>
+        @endif
+
         @if($_account->hasChildPermission("adm/system"))
             <li class="treeview {{ (\Request::is('adm/system*') ? 'active' : '') }}">
                 <a href="#">
