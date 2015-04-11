@@ -12,6 +12,7 @@ use \Models\Sys\Token as SystemToken;
 use \Models\Mship\Role as RoleData;
 use \Models\Mship\Permission as PermissionData;
 use \Models\Mship\Account\Note as AccountNoteData;
+use \Models\Teamspeak\Registration;
 
 class Account extends \Models\aTimelineEntry implements UserInterface {
 
@@ -117,6 +118,18 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
 
     public function security() {
         return $this->hasMany("\Models\Mship\Account\Security", "account_id", "account_id")->orderBy("created_at", "DESC");
+    }
+
+    public function teamspeakAliases() {
+        return $this->hasMany("\Models\Teamspeak\Alias", "account_id", "account_id");
+    }
+
+    public function teamspeakBans() {
+        return $this->hasMany("\Models\Teamspeak\Ban", "account_id", "account_id");
+    }
+
+    public function teamspeakRegistrations() {
+        return $this->hasMany("\Models\Teamspeak\Registration", "account_id", "account_id");
     }
 
     public function getQualificationAtcAttribute() {
@@ -234,7 +247,7 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
         return false;
     }
 
-    public function setPassword($password, $type) {
+    public function setPassword($password, $type, $temp = FALSE) {
         if ($this->current_security) {
             $this->current_security->delete();
         }
@@ -244,6 +257,7 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
         $security->account_id = $this->account_id;
         $security->security_id = $type->security_id;
         $security->value = $password;
+        if ($temp) $security->expires_at = Carbon::now()->toDateTimeString();
         $security->save();
     }
 
@@ -366,6 +380,19 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
         return $this->is_system_banned OR $this->is_network_banned;
     }
 
+    public function getIsTeamspeakBannedAttribute() {
+        //if ($this->teamspeak_bans->first()) {
+        $greatest = Carbon::createFromTimeStampUTC(0);
+            foreach ($this->teamspeak_bans as $ban) {
+                if ($greatest->lt($ban->expires_at)) {
+                    $greatest = $ban->expires_at;
+                }
+            }
+        if ($greatest->gt(Carbon::now())) return $greatest->diffInSeconds(Carbon::now());
+        else return FALSE;
+        //}
+    }
+
     public function getIsInactiveAttribute() {
         $status = $this->attributes['status'];
         return (boolean) (self::STATUS_INACTIVE & $status);
@@ -452,7 +479,7 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
     }
 
     public function setNameFirstAttribute($value) {
-        $value = utf8_decode($value);
+        //$value = utf8_decode($value);
         $value = trim($value);
         //$value = strtolower($value);
         //$value = ucfirst($value);
@@ -465,7 +492,7 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
     }
 
     public function setNameLastAttribute($value) {
-        $value = utf8_decode($value);
+        //$value = utf8_decode($value);
         $value = trim($value);
         /*$value = strtolower($value);
 
@@ -542,6 +569,27 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
             exit();
         }
         $this->states()->save(new Account\State(array("state" => $state)));
+    }
+
+	public function getNewRegistrationAttribute() {
+		return $this->teamspeak_registrations->filter(function($reg) {
+            return $reg->status == "new";
+        })->first();
+	}
+
+    public function getConfirmedRegistrationsAttribute() {
+        return $this->teamspeak_registrations->filter(function($reg) {
+            return $reg->status != "new";
+        });
+    }
+
+    public function isValidTeamspeakAlias($tAlias) {
+        foreach ($this->teamspeak_aliases as $rAlias) {
+            if (strcasecmp($rAlias->display_name, $tAlias) == 0) return TRUE;
+        }
+
+        return FALSE;
+
     }
 
 }
