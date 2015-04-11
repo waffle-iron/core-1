@@ -30,7 +30,7 @@ class UpgradeV20V201 extends Migration {
      */
     public function down() {
         DB::table("mship_permission")
-          ->where("name", "=", "/adm/mship/role/default")
+          ->where("name", "=", "adm/mship/role/default")
           ->delete();
     }
 }

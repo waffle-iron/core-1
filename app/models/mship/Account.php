@@ -22,7 +22,7 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
     public $incrementing = false;
     protected $dates = ['auth_extra_at', 'last_login', 'joined_at', 'created_at', 'updated_at', 'deleted_at'];
     protected $fillable = ['account_id', 'name_first', 'name_last'];
-    protected $attributes = ['name_first' => '', 'name_last' => '', 'status' => self::STATUS_ACTIVE];
+    protected $attributes = ['name_first' => '', 'name_last' => '', 'status' => self::STATUS_ACTIVE, 'last_login_ip' => '127.0.0.1'];
     protected $doNotTrack = ['session_id', 'auth_extra', 'auth_extra_id', 'cert_checked_at', 'last_login', 'remember_token'];
 
     const STATUS_ACTIVE = 0; //b"00000";
@@ -344,7 +344,7 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
     public function setIsSystemBannedAttribute($value) {
         if ($value && !$this->is_system_banned) {
             $this->setStatusFlag(self::STATUS_SYSTEM_BANNED);
-        } elseif ($this->is_system_banned) {
+        } elseif (!$value && $this->is_system_banned) {
             $this->unSetStatusFlag(self::STATUS_SYSTEM_BANNED);
         }
     }
@@ -357,7 +357,7 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
     public function setIsNetworkBannedAttribute($value) {
         if ($value && !$this->is_network_banned) {
             $this->setStatusFlag(self::STATUS_NETWORK_SUSPENDED);
-        } elseif ($this->is_network_banned) {
+        } elseif (!$value && $this->is_network_banned) {
             $this->unSetStatusFlag(self::STATUS_NETWORK_SUSPENDED);
         }
     }
@@ -374,7 +374,7 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
     public function setIsInactiveAttribute($value) {
         if ($value && !$this->is_inactive) {
             $this->setStatusFlag(self::STATUS_INACTIVE);
-        } elseif ($this->is_inactive) {
+        } elseif (!$value && $this->is_inactive) {
             $this->unSetStatusFlag(self::STATUS_INACTIVE);
         }
     }
@@ -387,7 +387,7 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
     public function setIsSystemAttribute($value) {
         if ($value && !$this->is_system) {
             $this->setStatusFlag(self::STATUS_SYSTEM);
-        } elseif ($this->is_system) {
+        } elseif (!$value && $this->is_system) {
             $this->unSetStatusFlag(self::STATUS_SYSTEM);
         }
     }
@@ -431,18 +431,6 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
         return $stati;
     }
 
-    public function getRequiresCertUpdateAttribute() {
-        if ($this->attributes['checked'] == NULL) {
-            return true;
-        }
-
-        if (Carbon::createFromFormat("Y-m-d H:i:s")->diffInDays() > '2') {
-            return true;
-        }
-
-        return false;
-    }
-
     public function getLastLoginIpAttribute() {
         return long2ip($this->attributes['last_login_ip']);
     }
@@ -464,6 +452,7 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
     }
 
     public function setNameFirstAttribute($value) {
+        $value = utf8_decode($value);
         $value = trim($value);
         //$value = strtolower($value);
         //$value = ucfirst($value);
@@ -472,10 +461,11 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
             $value = ucwords(strtolower($value));
         }
 
-        $this->attributes["name_first"] = utf8_encode($value);
+        $this->attributes["name_first"] = $value;
     }
 
     public function setNameLastAttribute($value) {
+        $value = utf8_decode($value);
         $value = trim($value);
         /*$value = strtolower($value);
 
@@ -492,7 +482,7 @@ class Account extends \Models\aTimelineEntry implements UserInterface {
             $value = ucwords(strtolower($value));
         }
 
-        $this->attributes["name_last"] = utf8_encode($value);
+        $this->attributes["name_last"] = $value;
     }
 
     public function getNameAttribute() {

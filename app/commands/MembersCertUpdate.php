@@ -11,6 +11,7 @@ use Models\Mship\Account\Qualification;
 use \Cache;
 use \VatsimXML;
 use \VatsimSSO;
+use \Carbon\Carbon;
 
 class MembersCertUpdate extends aCommand {
 
@@ -43,10 +44,17 @@ class MembersCertUpdate extends aCommand {
      * @return mixed
      */
     public function fire() {
-        if (!$this->option("logged-in-since") && !$this->option("not-logged-in-since")) exit("Please specify either --logged-in-since or --not-logged-in-since.");
+        global $debug;
+
+        // if specified, turn debug mode on
         if ($this->option("debug")) $debug = TRUE;
         else $debug = FALSE;
 
+        // set the maximum number of members to load, with a hard limit of 10,000
+        if ($this->argument('max_members') > 10000) $max_members = 10000;
+        else $max_members = $this->argument('max_members');
+
+        // if we only want to force update a specific member, process them and exit
         if ($this->option("force-update")) {
             try {
                 $member = Account::findOrFail($this->option("force-update"));
@@ -57,39 +65,51 @@ class MembersCertUpdate extends aCommand {
 
             $this->processMember($member);
             exit(0);
-
-        } else {
-
-            /*
-             * REGULAR CHECKING:    php artisan Members:CertUpdate --logged-in-since --last-login=720
-             * OCCASIONAL CHECKING: php artisan Members:CertUpdate --not-logged-in-since --last-login=720
-             */
-            $members = Account::where(function($query) {
-                $query->where("cert_checked_at", "<=", \Carbon\Carbon::now()->subHours($this->option("time-since-last"))->toDateTimeString())
-                      ->orWhereNull("cert_checked_at");
-            });
-            // never process a member who hasn't logged in for greater than 6 months
-            if (!$this->option("remove-hard-limit")) $members = $members->where("last_login", ">=", \Carbon\Carbon::now()->subHours(24*30*6));
-            // for regular/active member checking
-            // if set, AND process members who has logged in since x
-            if ($this->option("logged-in-since")) $members = $members->where("last_login", ">=", \Carbon\Carbon::now()->subHours($this->option("logged-in-since"))->toDateTimeString());
-            // for irregular/less-active member checking
-            // if set, AND process members who haven't logged in since x, or haven't ever logged in and aren't suspended
-            elseif ($this->option("not-logged-in-since")) $members = $members->where(function($query) {
-                $query->where("last_login", "<=", \Carbon\Carbon::now()->subHours($this->option("last-login"))->toDateTimeString())
-                      ->orWhere(function($query) {
-                            $query->whereNull("last_login")
-                                  ->where("status", "=", "0");
-                      });
-            });
-            // AND only process members who haven't been updated recently, or ever
-            $members = $members->orderBy("cert_checked_at", "ASC")
-                               ->limit($this->argument("max_members"))
-                               ->get();
         }
 
-        if (count($members) < 1 && $debug) {
-            print "No members to process.\n\n";
+        // all accounts should be loaded with their states, emails, and qualifications
+        $members = Account::with('states')->with('emails')->with('qualifications');
+
+        // add parameters based on the cron type
+        $type = $this->option("type")[0];
+        switch($type) {
+            case "h":
+                // members who have logged in in the last 30 days or who have never been checked
+                $members = $members->where('last_login', '>=', Carbon::now()->subMonth()->toDateTimeString())
+                                   ->orWhereNull('cert_checked_at');
+                if ($debug) echo "Hourly cron.\n";
+                break;
+            case "d":
+                // members who have logged in in the last 90 days and haven't been checked today
+                $members = $members->where('cert_checked_at', '<=', Carbon::now()->subHours(23)->toDateTimeString())
+                                   ->where('last_login', '>=', Carbon::now()->subMonths(3)->toDateTimeString());
+                if ($debug) echo "Daily cron.\n";
+                break;
+            case "w":
+                // members who have logged in in the last 180 days and haven't been checked this week
+                $members = $members->where('cert_checked_at', '<=', Carbon::now()->subDays(6)->toDateTimeString())
+                                   ->where('last_login', '>=', Carbon::now()->subMonths(6)->toDateTimeString());
+                if ($debug) echo "Weekly cron.\n";
+                break;
+            case "m":
+                // members who have never logged in and haven't been checked this month, but are still active VATSIM members
+                $members = $members->where('cert_checked_at', '<=', Carbon::now()->subDays(25)->toDateTimeString())
+                                   ->whereNull('last_login')
+                                   ->where("status", "=", "0");
+                if ($debug) echo "Monthly cron.\n";
+                break;
+            default:
+                // all members
+                if ($debug) echo "Full cron.\n";
+                break;
+        }
+
+        $members = $members->orderBy('cert_checked_at', 'ASC')
+                           ->limit($max_members)
+                           ->get();
+
+        if (count($members) < 1) {
+            if ($debug) print "No members to process.\n\n";
             return;
         } elseif ($debug) {
             echo count($members) . " retrieved.\n\n";
@@ -102,19 +122,20 @@ class MembersCertUpdate extends aCommand {
             $this->processMember($_m, $pointer);
         }
 
-        print "Processed " . ($pointer + 1) . " members.\n\n";
+        if ($debug) print "Processed " . ($pointer + 1) . " members.\n\n";
     }
 
 
     private function processMember($_m, $pointer=0) {
-        print "#" . ($pointer + 1) . " Processing " . str_pad($_m->account_id, 9, " ", STR_PAD_RIGHT) . "\t";
+        global $debug;
+        if ($debug) print "#" . ($pointer + 1) . " Processing " . str_pad($_m->account_id, 9, " ", STR_PAD_RIGHT) . "\t";
 
         // Let's load the details from VatsimXML!
         try {
             $_xmlData = VatsimXML::getData($_m->account_id, "idstatusint");
-            print "\tVatsimXML Data retrieved.\n";
+            if ($debug) print "\tVatsimXML Data retrieved.\n";
         } catch (Exception $e) {
-            print "\tVatsimXML Data *NOT* retrieved.  ERROR.\n";
+            if ($debug) print "\tVatsimXML Data *NOT* retrieved.  ERROR.\n";
             return;
         }
 
@@ -126,13 +147,13 @@ class MembersCertUpdate extends aCommand {
         }
 
         DB::beginTransaction();
-        print "\tDB::beginTransaction\n";
+        if ($debug) print "\tDB::beginTransaction\n";
         try {
-            $_m->name_first = $_xmlData->name_first;
-            $_m->name_last = $_xmlData->name_last;
+            if (!empty($_xmlData->name_first) && is_string($_xmlData->name_first)) $_m->name_first = $_xmlData->name_first;
+            if (!empty($_xmlData->name_last) && is_string($_xmlData->name_last)) $_m->name_last = $_xmlData->name_last;
 
-            print "\t" . str_repeat("-", 89) . "\n";
-            print "\t| Data Field\t\tOld Value\t\t\tNew Value\t\t\t|\n";
+            if ($debug) print "\t" . str_repeat("-", 89) . "\n";
+            if ($debug) print "\t| Data Field\t\tOld Value\t\t\tNew Value\t\t\t|\n";
             if ($_m->isDirty()) {
                 $original = $_m->getOriginal();
                 foreach ($_m->getDirty() as $key => $newValue) {
@@ -140,14 +161,13 @@ class MembersCertUpdate extends aCommand {
                 }
             }
 
-            $_m->cert_checked_at = \Carbon\Carbon::now()->toDateTimeString();
+            $_m->cert_checked_at = Carbon::now()->toDateTimeString();
             $_m->save();
             $_m = $_m->find($_m->account_id);
 
             // Let's work out the user status.
-            $oldStatus = $_m->status_string;
+            $oldStatus = $_m->status;
             $_m->setCertStatus($_xmlData->rating);
-
             if ($oldStatus != $_m->status) {
                 $this->outputTableRow("status", $oldStatus, $_m->status_string);
             }
@@ -184,6 +204,11 @@ class MembersCertUpdate extends aCommand {
                         $this->outputTableRow("atc_rating", "Previous", $prevAtcRating->code);
                     }
                 }
+            } else {
+                // remove any extra ratings
+                foreach (($q = $_m->qualifications_atc_training) as $qual) $qual->delete(); 
+                foreach (($q = $_m->qualifications_pilot_training) as $qual) $qual->delete(); 
+                foreach (($q = $_m->qualifications_admin) as $qual) $qual->delete();
             }
 
             $pilotRatings = QualificationData::parseVatsimPilotQualifications($_xmlData->pilotrating);
@@ -198,17 +223,19 @@ class MembersCertUpdate extends aCommand {
             DB::rollback();
             print "\tDB::rollback\n";
             print "\tError: " . $e->getMessage() . " on line " . $e->getLine() . " in " . $e->getFile() . "\n";
+            print "\tCID: " . $_m->account_id . "\n";
         }
 
-        print "\t" . str_repeat("-", 89) . "\n";
+        if ($debug) print "\t" . str_repeat("-", 89) . "\n";
 
         DB::commit();
-        print "\tDB::commit\n";
-        print "\n";
+        if ($debug) print "\tDB::commit\n";
+        if ($debug) print "\n";
     }
 
     private function outputTableRow($key, $old, $new) {
-        print "\t| " . str_pad($key, 20, " ", STR_PAD_RIGHT) . "\t" . str_pad($old, 30, " ", STR_PAD_RIGHT) . "\t" . str_pad($new, 30, " ", STR_PAD_RIGHT) . "\t|\n";
+        global $debug;
+        if ($debug) print "\t| " . str_pad($key, 20, " ", STR_PAD_RIGHT) . "\t" . str_pad($old, 30, " ", STR_PAD_RIGHT) . "\t" . str_pad($new, 30, " ", STR_PAD_RIGHT) . "\t|\n";
     }
 
     /**
@@ -229,12 +256,8 @@ class MembersCertUpdate extends aCommand {
      */
     protected function getOptions() {
         return array(
-            array("last-login", "l", InputOption::VALUE_OPTIONAL, "The amount of time (in hours) that a user has to have logged in within to force an update.", 24*90),
-            array("logged-in-since", "s", InputOption::VALUE_NONE, "Process members that have logged in since the specified login time."),
-            array("not-logged-in-since", "o", InputOption::VALUE_NONE, "Process members that have not logged in since the specified login time."),
-            array("time-since-last", "t", InputOption::VALUE_OPTIONAL, "The amount of time (in hours) that has to have lapsed to force an update.", 2),
-            array("remove-hard-limit", "r", InputOption::VALUE_OPTIONAL, "Removes the hard time limit of 6 months.", 2),
             array("force-update", "f", InputOption::VALUE_OPTIONAL, "If specified, only this CID will be checked.", 0),
+            array("type", "t", InputOption::VALUE_OPTIONAL, "Which update are we running? Hourly, Daily, Weekly or Monthly?", "hourly"),
             array("debug", "d", InputOption::VALUE_NONE, "Enable debug output."),
         );
     }
