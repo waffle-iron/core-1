@@ -4,3 +4,4 @@ nbproject*
 vendor/*
 .idea*
 /bootstrap/compiled.php
+_ide_helper.php
