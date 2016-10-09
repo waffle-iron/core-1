@@ -43,7 +43,7 @@
                                     @endif
 
                                     {{--@if(Module::isEnabled("visittransfer") && true)--}}
-                                        {{--<li class="divider"></li>--}}
+                                    {{--<li class="divider"></li>--}}
                                     {{--@endif--}}
 
                                     {{--<li class="dropdown-header">Disputes</li>--}}
@@ -62,6 +62,26 @@
 
                     </li>
                 </ul>
+
+                @if(Module::isEnabled("centraltraining"))
+                    <ul class="nav navbar-nav navcustom">
+                        <li class="dropdown dropdown-large">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Training <b
+                                        class="caret"></b></a>
+                            <ul class="dropdown-menu dropdown-menu-large row mainmenu_dropdown">
+                                <li class="col-sm-6">
+                                    <ul>
+                                        <li class="dropdown-header">ATC Training</li>
+                                        <li>{!! link_to_route("ct.start", "Start") !!}</li>
+                                        <li>{!! link_to_route("ct.landing", "Dashboard") !!}</li>
+
+                                    </ul>
+                                </li>
+                            </ul>
+
+                        </li>
+                    </ul>
+                @endif
 
                 @if(Auth::check())
                     <ul class="nav navbar-nav navcustom">
@@ -93,7 +113,7 @@
                         </li>
                     </ul>
                 @endif
-                <!--<ul class="nav navbar-nav navcustom">
+            <!--<ul class="nav navbar-nav navcustom">
                     <li class="dropdown dropdown-large">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">RTS <b class="caret"></b></a>
                         <ul class="dropdown-menu dropdown-menu-large row mainmenu_dropdown">
@@ -153,7 +173,7 @@
 
         <div class="breadcrumb_container hidden-xs hidden-sm">
             <div class="breadcrumb_content">
-                <a href="#">VATSIM UK</a>  /  Home
+                <a href="#">VATSIM UK</a> / Home
             </div>
         </div>
 
@@ -188,7 +208,8 @@
 
             @if(Auth::check() && Auth::user()->auth_extra && !Request::is("mship/notification*") && Auth::user()->has_unread_notifications)
                 <div class="alert alert-warning" role="alert">
-                    You currently have unread notifications. You can view them on the "{!! HTML::link(route("mship.notification.list"), "notifications page") !!}".
+                    You currently have unread notifications. You can view them on the
+                    "{!! HTML::link(route("mship.notification.list"), "notifications page") !!}".
                 </div>
             @endif
         </div>
@@ -201,9 +222,9 @@
 
 </div>
 
-    {!! HTML::script(elixir("js/app-all.js")) !!}
+{!! HTML::script(elixir("js/app-all.js")) !!}
 
-    @yield('scripts')
+@yield('scripts')
 
 </body>
 

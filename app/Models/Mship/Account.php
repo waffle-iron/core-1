@@ -20,6 +20,7 @@ use App\Models\Mship\Permission as PermissionData;
 use App\Models\Mship\Qualification;
 use App\Models\Mship\Role as RoleData;
 use App\Models\Sys\Notification as SysNotification;
+use App\Modules\CentralTraining\Models\Profile;
 use App\Modules\Visittransfer\Exceptions\Application\DuplicateApplicationException;
 use App\Modules\Visittransfer\Models\Application;
 use App\Traits\RecordsActivity as RecordsActivityTrait;
@@ -354,6 +355,15 @@ class Account extends \App\Models\Model implements AuthenticatableContract
                 \App\Modules\Visittransfer\Models\Application::$APPLICATION_IS_CONSIDERED_OPEN
             );
         });
+    }
+
+    /**
+     * Fetch the central training profile for this account.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne
+     */
+    public function centralTrainingProfile(){
+        return $this->hasOne(Profile::class, "account_id", "id");
     }
 
     public function visitTransferReferee()
