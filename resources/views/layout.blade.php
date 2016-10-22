@@ -93,6 +93,38 @@
                         </li>
                     </ul>
                 @endif
+
+                @if(Module::isEnabled("visittransfer"))
+                    <ul class="nav navbar-nav navcustom">
+                        <li class="dropdown dropdown-large">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Contact Us <b class="caret"></b></a>
+                            <ul class="dropdown-menu dropdown-menu-large row mainmenu_dropdown">
+                                <li class="col-sm-6">
+                                    <ul>
+                                        <li class="dropdown-header">New Members</li>
+                                        <li>{!! link_to_route("triage.search", "Getting Connected", ["query" => "getting connected"]) !!}</li>
+                                        <li>{!! link_to_route("triage.search", "Pilot Training 101", ["query" => "start pilot training"]) !!}</li>
+                                        <li>{!! link_to_route("triage.search", "ATC Training 101", ["query" => "start atc training"]) !!}</li>
+
+                                        <li class="divider"></li>
+
+                                        <li class="dropdown-header">Feedback</li>
+                                        <li>{!! link_to("https://www.vatsim-uk.co.uk/feedback-form/", "Leave ATC/Pilot Feedback") !!}</li>
+{{--                                        <li>{!! link_to_route("triage.complain", "Make a Complaint") !!}</li>--}}
+                                    </ul>
+                                </li>
+                                <li class="col-sm-6">
+                                    <ul>
+                                        <li class="dropdown-header">FAQs</li>
+                                        <li>{!! link_to_route("triage.search", "Transfer IVAO Rating", ["query" => "transfer rating network"]) !!}</li>
+                                    </ul>
+                                </li>
+                            </ul>
+
+                        </li>
+                    </ul>
+                @endif
+
                 <!--<ul class="nav navbar-nav navcustom">
                     <li class="dropdown dropdown-large">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">RTS <b class="caret"></b></a>

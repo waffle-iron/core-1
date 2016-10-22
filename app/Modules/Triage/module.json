@@ -1,0 +1,6 @@
+{
+    "name": "Triage",
+    "slug": "triage",
+    "version": "1.0",
+    "description": "The triage module is the front-facing helpdesk portal."
+}

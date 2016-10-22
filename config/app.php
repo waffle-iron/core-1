@@ -189,6 +189,8 @@ return [
         Bootstrapper\BootstrapperL5ServiceProvider::class,
         Caffeinated\Modules\ModulesServiceProvider::class,
         ComoCode\LaravelAb\LaravelAbServiceProvider::class,
+        Laravel\Scout\ScoutServiceProvider::class,
+        TeamTNT\Scout\TNTSearchScoutServiceProvider::class,
     ],
     /*
     |--------------------------------------------------------------------------
